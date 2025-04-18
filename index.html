@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>RED PRIVADA - Chat, Archivos, Voz y Código Personalizado</title>
+<style>
+  body {
+    background: #000;
+    color: #f00;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 0; padding: 0;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  h1 {
+    margin-top: 32px; margin-bottom: 8px;
+    font-size: 2.2em; letter-spacing: 2px;
+    color: #f00; text-shadow: 0 0 8px #800;
+  }
+  #main {
+    background: rgba(20,20,20,0.95);
+    border-radius: 16px;
+    box-shadow: 0 0 24px #222;
+    padding: 32px 24px 24px 24px;
+    margin-top: 16px;
+    width: 95vw; max-width: 480px;
+  }
+  label {
+    color: #f00;
+    margin-bottom: 4px;
+    display: block;
+    font-size: 1em;
+  }
+  input[type="text"], textarea {
+    background: #111;
+    color: #f00;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 10px;
+    width: 100%;
+    font-size: 1em;
+    margin-bottom: 12px;
+    resize: vertical;
+  }
+  textarea[readonly] {
+    background: #222;
+    color: #f55;
+  }
+  #chat {
+    background: #111;
+    color: #f00;
+    border: 1px solid #333;
+    border-radius: 8px;
+    min-height: 200px;
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 10px;
+    margin-bottom: 12px;
+    font-size: 1em;
+  }
+  .msg {
+    margin: 6px 0;
+    padding: 8px 12px;
+    border-radius: 20px;
+    max-width: 75%;
+    word-wrap: break-word;
+    clear: both;
+  }
+  .msg.me {
+    color: #f55;
+    background: #330000;
+    text-align: right;
+    float: right;
+  }
+  .msg.peer {
+    color: #f00;
+    background: #440000;
+    text-align: left;
+    float: left;
+  }
+  .msg.sys {
+    color: #888;
+    font-style: italic;
+    text-align: center;
+    clear: both;
+    float: none;
+  }
+  button {
+    background: #333;
+    color: #f00;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 22px;
+    font-size: 1em;
+    margin: 6px 0;
+    cursor: pointer;
+    transition: background 0.2s;
+    box-shadow: 0 2px 8px #111;
+  }
+  button:active, button:focus {
+    background: #555;
+    color: #fff;
+    outline: none;
+  }
+  button:hover:not(:disabled) {
+    background: #777;
+    color: #fff;
+  }
+  button:disabled {
+    background: #222;
+    color: #555;
+    cursor: not-allowed;
+  }
+  #footer {
+    margin-top: 32px;
+    color: #444;
+    font-size: 0.95em;
+    text-align: center;
+  }
+  #fileInput {
+    margin-top: 10px;
+    color: #f00;
+  }
+  img.preview {
+    max-width: 200px;
+    max-height: 150px;
+    border-radius: 8px;
+    margin-top: 6px;
+  }
+  a.file-link {
+    color: #f00;
+    text-decoration: underline;
+    cursor: pointer;
+    display: block;
+    margin-top: 6px;
+  }
+  #audioControls {
+    margin-top: 10px;
+    text-align: center;
+  }
+  #audioControls button {
+    margin: 0 5px;
+  }
+</style>
+</head>
+<body>
+  <h1>RED PRIVADA</h1>
+  <div id="main">
+    <div id="step1">
+      <label>Tu nombre:</label>
+      <input type="text" id="usernameInput" placeholder="Ejemplo: Juan" />
+      <label>Código personalizado de la sala:</label>
+      <input type="text" id="customRoomCode" placeholder="Ejemplo: miSala123" />
+      <button id="createBtn">Crear Sala</button>
+      <button id="joinBtn">Unirse a Sala</button>
+    </div>
+    <div id="step2" style="display:none;">
+      <div id="offerSection" style="display:none;">
+        <label>Comparte este código con tu amigo:</label>
+        <textarea id="offer" readonly></textarea>
+        <button id="copyOfferBtn">Copiar código</button>
+        <label>Pega aquí la respuesta de tu amigo:</label>
+        <textarea id="answer"></textarea>
+        <button id="submitAnswerBtn">Conectar</button>
+      </div>
+      <div id="answerSection" style="display:none;">
+        <label>Pega aquí el código de la sala:</label>
+        <input type="text" id="joinRoomCode" placeholder="Ingresa el código de la sala" />
+        <label>Pega aquí el código de la sala (oferta):</label>
+        <textarea id="remoteOffer"></textarea>
+        <button id="submitOfferBtn">Conectar</button>
+        <label>Comparte este código de respuesta con tu amigo:</label>
+        <textarea id="localAnswer" readonly></textarea>
+        <button id="copyAnswerBtn">Copiar respuesta</button>
+      </div>
+    </div>
+    <div id="chatSection" style="display:none;">
+      <div id="chat"></div>
+      <input type="text" id="msgInput" placeholder="Escribe tu mensaje..." autocomplete="off" />
+      <button id="sendBtn">Enviar</button>
+      <input type="file" id="fileInput" />
+      <div id="audioControls" style="display:none;">
+        <button id="startAudioBtn">Iniciar Chat de Voz</button>
+        <button id="stopAudioBtn" disabled>Detener Chat de Voz</button>
+        <audio id="remoteAudio" autoplay></audio>
+      </div>
+    </div>
+  </div>
+  <div id="footer">
+    RED PRIVADA &copy; 2025JD - sopórte JD creador del aplicacion.
+  </div>
+
+<script>
+  let pc, channel, isHost = false;
+  let username = '';
+  let peerUsername = 'Amigo';
+  let localStream = null;
+  let audioSender = null;
+
+  // UI elements
+  const step1 = document.getElementById('step1');
+  const step2 = document.getElementById('step2');
+  const offerSection = document.getElementById('offerSection');
+  const answerSection = document.getElementById('answerSection');
+  const chatSection = document.getElementById('chatSection');
+  const chat = document.getElementById('chat');
+  const msgInput = document.getElementById('msgInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const fileInput = document.getElementById('fileInput');
+  const usernameInput = document.getElementById('usernameInput');
+  const customRoomCodeInput = document.getElementById('customRoomCode');
+  const joinRoomCodeInput = document.getElementById('joinRoomCode');
+  const audioControls = document.getElementById('audioControls');
+  const startAudioBtn = document.getElementById('startAudioBtn');
+  const stopAudioBtn = document.getElementById('stopAudioBtn');
+  const remoteAudio = document.getElementById('remoteAudio');
+
+  // Crear sala (host)
+  document.getElementById('createBtn').onclick = async () => {
+    username = usernameInput.value.trim();
+    const roomCode = customRoomCodeInput.value.trim();
+    if (!username) return alert('Por favor, ingresa tu nombre.');
+    if (!roomCode) return alert('Por favor, ingresa un código personalizado para la sala.');
+    isHost = true;
+    step1.style.display = 'none';
+    step2.style.display = '';
+    offerSection.style.display = '';
+    answerSection.style.display = 'none';
+    chatSection.style.display = 'none';
+
+    pc = new RTCPeerConnection();
+    channel = pc.createDataChannel('chat');
+    setUpChannel();
+    setUpAudio();
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    pc.onicecandidate = e => {
+      if (e.candidate === null) {
+        // En lugar de mostrar el SDP, mostramos el código personalizado + base64 del SDP
+        document.getElementById('offer').value = roomCode + ':' + btoa(JSON.stringify(pc.localDescription));
+      }
+    };
+  };
+
+  // Unirse a sala (peer)
+  document.getElementById('joinBtn').onclick = () => {
+    username = usernameInput.value.trim();
+    if (!username) return alert('Por favor, ingresa tu nombre.');
+    isHost = false;
+    step1.style.display = 'none';
+    step2.style.display = '';
+    offerSection.style.display = 'none';
+    answerSection.style.display = '';
+    chatSection.style.display = 'none';
+  };
+
+  // Peer pega la oferta y genera respuesta
+  document.getElementById('submitOfferBtn').onclick = async () => {
+    const roomCodeJoin = joinRoomCodeInput.value.trim();
+    const remoteOfferRaw = document.getElementById('remoteOffer').value.trim();
+    if (!roomCodeJoin) return alert('Por favor, ingresa el código personalizado de la sala.');
+    if (!remoteOfferRaw) return alert('Pega el código de la sala (oferta).');
+
+    // Validar que el código personalizado coincide con el código en la oferta
+    if (!remoteOfferRaw.startsWith(roomCodeJoin + ':')) {
+      return alert('El código personalizado no coincide con el código en la oferta.');
+    }
+
+    const offerBase64 = remoteOfferRaw.substring(roomCodeJoin.length + 1);
+    try {
+      pc = new RTCPeerConnection();
+      pc.ondatachannel = e => { channel = e.channel; setUpChannel(); };
+      setUpAudio();
+      await pc.setRemoteDescription(JSON.parse(atob(offerBase64)));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      pc.onicecandidate = e => {
+        if (e.candidate === null) {
+          document.getElementById('localAnswer').value = roomCodeJoin + ':' + btoa(JSON.stringify(pc.localDescription));
+        }
+      };
+    } catch (e) {
+      alert('Código inválido o error en la conexión.');
+      console.error(e);
+    }
+  };
+
+  // Host pega la respuesta y conecta
+  document.getElementById('submitAnswerBtn').onclick = async () => {
+    const answerRaw = document.getElementById('answer').value.trim();
+    if (!answerRaw) return alert('Pega la respuesta de tu amigo.');
+
+    // Extraer código personalizado y SDP
+    const parts = answerRaw.split(':');
+    if (parts.length < 2) return alert('Respuesta inválida.');
+
+    const roomCodeAnswer = parts[0];
+    const answerBase64 = parts.slice(1).join(':');
+    try {
+      await pc.setRemoteDescription(JSON.parse(atob(answerBase64)));
+    } catch (e) {
+      alert('Respuesta inválida o error en la conexión.');
+      console.error(e);
+    }
+  };
+
+  // Copiar botones
+  document.getElementById('copyOfferBtn').onclick = () => {
+    navigator.clipboard.writeText(document.getElementById('offer').value);
+  };
+  document.getElementById('copyAnswerBtn').onclick = () => {
+    navigator.clipboard.writeText(document.getElementById('localAnswer').value);
+  };
+
+  // Configurar canal de datos y eventos
+  function setUpChannel() {
+    channel.binaryType = 'arraybuffer';
+
+    channel.onopen = () => {
+      step1.style.display = step2.style.display = 'none';
+      chatSection.style.display = '';
+      msgInput.disabled = false;
+      sendBtn.disabled = false;
+      fileInput.disabled = false;
+      audioControls.style.display = 'block';
+      addMsg('Conexión establecida.', 'sys');
+      sendSystemMessage({type:'name', name: username});
+    };
+
+    channel.onmessage = e => {
+      handleMessage(e.data);
+    };
+
+    channel.onclose = () => {
+      addMsg('Conexión cerrada.', 'sys');
+      msgInput.disabled = true;
+      sendBtn.disabled = true;
+      fileInput.disabled = true;
+      audioControls.style.display = 'none';
+      stopAudio();
+    };
+  }
+
+  // Enviar mensajes de texto
+  sendBtn.onclick = sendMsg;
+  msgInput.onkeydown = e => { if (e.key === 'Enter') sendMsg(); };
+
+  function sendMsg() {
+    const msg = msgInput.value.trim();
+    if (!msg || !channel || channel.readyState !== 'open') return;
+    const data = JSON.stringify({type:'text', name: username, message: msg});
+    channel.send(data);
+    addMsg(msg, 'me');
+    msgInput.value = '';
+    msgInput.focus();
+  }
+
+  // Mostrar mensajes en chat
+  function addMsg(msg, who) {
+    const p = document.createElement('div');
+    p.className = 'msg ' + who;
+    p.textContent = msg;
+    chat.appendChild(p);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  // Manejar mensajes recibidos (texto y archivos)
+  let fileBuffer = [];
+  let fileMeta = null;
+  let receivedFileSize = 0;
+
+  function handleMessage(data) {
+    if (typeof data === 'string') {
+      try {
+        const obj = JSON.parse(data);
+        if (obj.type === 'text') {
+          peerUsername = obj.name || 'Amigo';
+          addMsg(`${peerUsername}: ${obj.message}`, 'peer');
+        } else if (obj.type === 'name') {
+          peerUsername = obj.name || 'Amigo';
+          addMsg(`Conectado con ${peerUsername}`, 'sys');
+        } else if (obj.type === 'file-meta') {
+          fileMeta = obj;
+          fileBuffer = [];
+          receivedFileSize = 0;
+          addMsg(`${peerUsername} está enviando archivo: ${fileMeta.name} (${formatBytes(fileMeta.size)})`, 'sys');
+        }
+      } catch {
+        addMsg('Mensaje recibido no válido', 'sys');
+      }
+    } else if (data instanceof ArrayBuffer) {
+      if (!fileMeta) {
+        addMsg('Datos binarios recibidos sin metadata', 'sys');
+        return;
+      }
+      fileBuffer.push(new Uint8Array(data));
+      receivedFileSize += data.byteLength;
+      if (receivedFileSize >= fileMeta.size) {
+        // Archivo completo recibido
+        const blob = new Blob(fileBuffer, {type: fileMeta.type});
+        showReceivedFile(blob, fileMeta.name);
+        fileBuffer = [];
+        fileMeta = null;
+        receivedFileSize = 0;
+      }
+    }
+  }
+
+  // Mostrar archivo recibido
+  function showReceivedFile(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    let elem;
+    if (blob.type.startsWith('image/')) {
+      elem = document.createElement('img');
+      elem.src = url;
+      elem.className = 'preview';
+      elem.alt = filename;
+    } else {
+      elem = document.createElement('a');
+      elem.href = url;
+      elem.download = filename;
+      elem.textContent = `Descargar archivo: ${filename}`;
+      elem.className = 'file-link';
+    }
+    chat.appendChild(elem);
+    chat.scrollTop = chat.scrollHeight;
+    addMsg(`Archivo recibido: ${filename}`, 'sys');
+  }
+
+  // Formatear bytes a KB, MB, etc.
+  function formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024, sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  // Enviar mensajes del sistema (JSON)
+  function sendSystemMessage(obj) {
+    if (channel && channel.readyState === 'open') {
+      channel.send(JSON.stringify(obj));
+    }
+  }
+
+  // Enviar archivo seleccionado
+  fileInput.onchange = () => {
+    if (!channel || channel.readyState !== 'open') return;
+    const file = fileInput.files[0];
+    if (!file) return;
+    if (file.size > 500 * 1024 * 1024) { // 500MB límite arbitrario
+      alert('Archivo demasiado grande (máx 500MB)');
+      return;
+    }
+    sendFile(file);
+    fileInput.value = '';
+  };
+
+  // Enviar archivo en fragmentos
+  async function sendFile(file) {
+    addMsg(`Enviando archivo: ${file.name} (${formatBytes(file.size)})`, 'me');
+    // Enviar metadata primero
+    sendSystemMessage({
+      type: 'file-meta',
+      name: file.name,
+      size: file.size,
+      type: file.type || 'application/octet-stream',
+      lastModified: file.lastModified
+    });
+
+    const chunkSize = 16 * 1024; // 16KB por fragmento
+    let offset = 0;
+    while (offset < file.size) {
+      const slice = file.slice(offset, offset + chunkSize);
+      const arrayBuffer = await slice.arrayBuffer();
+      channel.send(arrayBuffer);
+      offset += chunkSize;
+      await sleep(10); // Pequeña pausa para no saturar canal
+    }
+    addMsg(`Archivo enviado: ${file.name}`, 'me');
+  }
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // --- Audio (chat de voz) ---
+  function setUpAudio() {
+    pc.ontrack = e => {
+      remoteAudio.srcObject = e.streams[0];
+    };
+  }
+
+  startAudioBtn.onclick = async () => {
+    if (!pc) return;
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({audio: true});
+      localStream.getTracks().forEach(track => {
+        audioSender = pc.addTrack(track, localStream);
+      });
+      startAudioBtn.disabled = true;
+      stopAudioBtn.disabled = false;
+      addMsg('Chat de voz iniciado.', 'sys');
+    } catch (err) {
+      alert('No se pudo iniciar el chat de voz: ' + err.message);
+    }
+  };
+
+  stopAudioBtn.onclick = () => {
+    stopAudio();
+  };
+
+  function stopAudio() {
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      localStream = null;
+    }
+    if (audioSender) {
+      pc.removeTrack(audioSender);
+      audioSender = null;
+    }
+    startAudioBtn.disabled = false;
+    stopAudioBtn.disabled = true;
+    addMsg('Chat de voz detenido.', 'sys');
+  }
+</script>
+</body>
+</html>
